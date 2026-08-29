@@ -44,14 +44,14 @@ python llm.py
 
 
 ## ⚠️ Current Limitations
-- Single-step reasoning (no chaining)
+- Single-step reasoning (no chaining) (Fixed)
 - Basic RAG (keyword match, not semantic)
 - No memory or conversation context
 - Simple JSON parsing (can break)
 - Uses eval() (not production safe)
 
 ## 🔥 Future Improvements
-- Multi-step reasoning agent (think → act → observe loop)
+- Multi-step reasoning agent (think → act → observe loop) (Done)
 - Real RAG (embeddings + vector DB like FAISS/Chroma)
 - Memory system (conversation history)
 - Dynamic tool system (plug-and-play tools)
