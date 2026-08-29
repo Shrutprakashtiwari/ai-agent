@@ -1,3 +1,7 @@
+from multiprocessing import context
+import re
+# from urllib import response
+
 import requests
 import json
 def call_llm(prompt):
@@ -10,37 +14,42 @@ def call_llm(prompt):
         }
     )
     return response.json()["response"]
-def decide(query):
+def decide(context):
     prompt = f"""
-You are an AI agent controller.
+You are an AI agent.
 
-Respond ONLY in valid JSON.
-No explanation. No extra text.
+You can:
+1. use calculator
+2. use rag_tool
+3. give final answer
+IMPORTANT RULES:
+- If a Tool result is already present, DO NOT use the same tool again
+- Use the Tool result to produce the final answer
+- Repeating the same tool is incorrect
 
-Choose one:
+Respond ONLY in JSON.
 
-1. calculator
-2. rag_tool
-3. final
+Context:
+{context}
 
-Format EXACTLY:
-
+Format:
 {{"type": "tool", "tool": "calculator", "input": "..."}}
-{{"type": "tool", "tool": "rag_tool" , "input": "..."}}
+{{"type": "tool", "tool": "rag_tool", "input": "..."}}
 {{"type": "final", "output": "..."}}
-User: {query}
-
-ONLY JSON:
-
 """
+
     response = call_llm(prompt)
 
-    start = response.find("{")
-    end = response.rfind("}") + 1
+    try:
+        match = re.search(r'\{.*?\}', response, re.DOTALL)
 
-    json_str = response[start:end]
+        if match:
+            return json.loads(match.group())
+        else:
+            return {"type": "final", "output": response}
 
-    return json.loads(json_str)
+    except:
+        return {"type": "final", "output": response}
 
 def calculate(expression):
     try:
@@ -60,20 +69,24 @@ def rag_tool(query):
     return "No info found"
 def run():
     while True:
-        input_query=input()
-        if input_query.lower() == "exit":
+        user_input=input()
+        if user_input.lower() == "exit":
             break
-        decision = decide(input_query)
-        if decision["type"]=="tool":
-            if decision["tool"]=="calculator":
-                result=calculate(decision["input"])
-                print("Calculator Result:", result)
-            elif decision["tool"]=="rag_tool":
-                result=rag_tool(decision["input"])
-                print("RAG Result:", result)
-            print("Decision:", decision)
-        else:
-            print("Final Result:", decision["output"])
+        context = f"user: {user_input}"
+        while True:
+            decision = decide(context)
+            if decision["type"]=="tool":
+                if decision["tool"]=="calculator":
+                    result=calculate(decision["input"])
+                    print("Calculator Result:", result)
+                elif decision["tool"]=="rag_tool":
+                    result=rag_tool(decision["input"])
+                    print("RAG Result:", result)
+                print("Decision:", decision)
+                context += f"\ntool_result: {result}\nNow decide next step carefully."
+            else:
+                print("Final Result:", decision["output"])
+                break
 
 if __name__=="__main__":
     run()
